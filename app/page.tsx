@@ -6,15 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Music, Users, Star, QrCode, Sparkles, Heart, TrendingUp, Zap } from 'lucide-react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 export default function HomePage() {
   const [eventId, setEventId] = useState('')
-  const [isVisible, setIsVisible] = useState(false)
+
   const [currentFeature, setCurrentFeature] = useState(0)
 
   useEffect(() => {
-    setIsVisible(true)
     const interval = setInterval(() => {
       setCurrentFeature((prev) => (prev + 1) % 3)
     }, 3000)
@@ -143,12 +142,12 @@ export default function HomePage() {
                 </motion.div>
                 <CardTitle className="text-3xl text-white mb-2">Event Host</CardTitle>
                 <CardDescription className="text-gray-300 text-lg">
-                  Create and manage your event's musical journey
+                  Create and manage your event&apos;s musical journey
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="text-gray-300 text-center leading-relaxed">
-                  Take control of your event's atmosphere with our powerful host dashboard. 
+                  Take control of your event&apos;s atmosphere with our powerful host dashboard. 
                   Manage playlists, approve requests, and monitor engagement in real-time.
                 </p>
                 <Link href="/host/login" className="block">
@@ -261,7 +260,7 @@ export default function HomePage() {
               Ready to Create Unforgettable Events?
             </h3>
             <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
-              Join thousands of event hosts who've transformed their gatherings with interactive music experiences.
+              Join thousands of event hosts who&apos;ve transformed their gatherings with interactive music experiences.
             </p>
             <Link href="/host/login">
               <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-8 text-lg shadow-lg transform transition-all duration-200 hover:scale-105">

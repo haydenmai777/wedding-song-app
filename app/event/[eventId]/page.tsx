@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
-import { Music, Heart, Plus, Star, TrendingUp, Users, Clock, Play, Pause, Volume2, Crown, Trophy, Medal } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Music, Heart, Plus, Star, TrendingUp, Users, Clock, Crown, Trophy, Medal } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 interface Event {
   id: string
@@ -29,7 +29,7 @@ export default function EventPage({ params }: { params: Promise<{ eventId: strin
   const [eventId, setEventId] = useState<string>('')
   const [event, setEvent] = useState<Event | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
-  const [showSongRequest, setShowSongRequest] = useState(false)
+
   const [newSong, setNewSong] = useState({ title: '', artist: '' })
   const [votedSongs, setVotedSongs] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -108,8 +108,7 @@ export default function EventPage({ params }: { params: Promise<{ eventId: strin
       })
 
     if (!error) {
-      setNewSong({ title: '', artist: '' })
-      setShowSongRequest(false)
+             setNewSong({ title: '', artist: '' })
     }
   }
 
@@ -170,7 +169,7 @@ export default function EventPage({ params }: { params: Promise<{ eventId: strin
         <div className="text-center">
           <Music className="h-16 w-16 text-purple-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Event Not Found</h2>
-          <p className="text-gray-300 mb-4">The event you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-300 mb-4">The event you&apos;re looking for doesn&apos;t exist or has been removed.</p>
         </div>
       </div>
     )

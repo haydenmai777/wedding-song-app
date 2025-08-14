@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Music, Plus, LogOut, Calendar, Star, TrendingUp, Users, Settings, BarChart3, Play, Pause, Volume2 } from 'lucide-react'
+import { Music, Plus, LogOut, Calendar, Star, TrendingUp, Settings, BarChart3 } from 'lucide-react'
 import { generateEventId, formatDate } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 

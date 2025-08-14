@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Music, Mail, Lock, Eye, EyeOff, Sparkles, Users, Star, TrendingUp } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 export default function HostLoginPage() {
   const [email, setEmail] = useState('')
