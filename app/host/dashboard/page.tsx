@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Music, Plus, LogOut, Calendar, Star } from 'lucide-react'
+import { Music, Plus, LogOut, Calendar, Star, TrendingUp, Users, Settings, BarChart3, Play, Pause, Volume2 } from 'lucide-react'
 import { generateEventId, formatDate } from '@/lib/utils'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Event {
   id: string
@@ -36,6 +37,7 @@ export default function HostDashboardPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [newEvent, setNewEvent] = useState({ title: '', description: '', event_date: '' })
   const [newSong, setNewSong] = useState({ title: '', artist: '' })
+  const [activeTab, setActiveTab] = useState('overview')
   const router = useRouter()
 
   const checkAuth = useCallback(async () => {
@@ -184,11 +186,11 @@ export default function HostDashboardPage() {
 
   if (!supabase) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="text-center">
-          <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Configuration Error</h2>
-          <p className="text-gray-600 mb-4">Supabase is not configured. Please check your environment variables.</p>
+          <Music className="h-16 w-16 text-purple-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Configuration Error</h2>
+          <p className="text-gray-300 mb-4">Supabase is not configured. Please check your environment variables.</p>
         </div>
       </div>
     )
@@ -196,304 +198,556 @@ export default function HostDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <motion.div 
+            className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+          <p className="text-gray-300 text-lg">Loading your dashboard...</p>
         </div>
       </div>
     )
   }
 
+  const totalVotes = songs.reduce((sum, song) => sum + song.votes, 0)
+  const approvedSongs = songs.filter(s => s.is_approved)
+  const pendingSongs = songs.filter(s => !s.is_approved)
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <motion.div 
+        className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <Music className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Host Dashboard</h1>
-            </div>
-            <Button onClick={signOut} variant="outline">
+            <motion.div 
+              className="flex items-center space-x-3"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-lg">
+                <Music className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-white">Host Dashboard</h1>
+            </motion.div>
+            <Button onClick={signOut} variant="outline" className="border-white/20 text-white hover:bg-white/10">
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Events List */}
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Card className="border-0 bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-white text-xl">Navigation</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: BarChart3 },
+                    { id: 'events', label: 'Events', icon: Calendar },
+                    { id: 'songs', label: 'Songs', icon: Music },
+                    { id: 'settings', label: 'Settings', icon: Settings }
+                  ].map((tab) => (
+                    <motion.button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
+                        activeTab === tab.id 
+                          ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30' 
+                          : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <tab.icon className="h-5 w-5" />
+                      <span>{tab.label}</span>
+                    </motion.button>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Quick Stats */}
+            <motion.div
+              className="mt-6"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <Card className="border-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg">Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Total Events</span>
+                    <span className="text-white font-semibold">{events.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Total Songs</span>
+                    <span className="text-white font-semibold">{songs.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Total Votes</span>
+                    <span className="text-white font-semibold">{totalVotes}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {activeTab === 'overview' && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="space-y-6"
+              >
+                {/* Stats Cards */}
+                <div className="grid md:grid-cols-3 gap-6">
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="border-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-lg">
+                            <Calendar className="h-8 w-8 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-gray-300 text-sm">Active Events</p>
+                            <p className="text-white text-2xl font-bold">{events.filter(e => e.is_active).length}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="border-0 bg-gradient-to-br from-green-600/20 to-emerald-600/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-3 rounded-lg">
+                            <Music className="h-8 w-8 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-gray-300 text-sm">Approved Songs</p>
+                            <p className="text-white text-2xl font-bold">{approvedSongs.length}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="border-0 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-3 rounded-lg">
+                            <TrendingUp className="h-8 w-8 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-gray-300 text-sm">Pending Songs</p>
+                            <p className="text-white text-2xl font-bold">{pendingSongs.length}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </div>
+
+                {/* Recent Activity */}
+                <Card className="border-0 bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                  <CardHeader>
+                    <CardTitle className="text-white text-xl">Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {events.slice(0, 3).map((event, index) => (
+                        <motion.div
+                          key={event.id}
+                          initial={{ opacity: 0, x: -30 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                          className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-lg">
+                              <Calendar className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-white font-medium">{event.title}</h4>
+                              <p className="text-gray-400 text-sm">{formatDate(new Date(event.created_at))}</p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => setSelectedEvent(event)}
+                            size="sm"
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                          >
+                            View
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {activeTab === 'events' && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-6"
+              >
                 <div className="flex justify-between items-center">
-                  <CardTitle>Your Events</CardTitle>
+                  <h2 className="text-2xl font-bold text-white">Your Events</h2>
                   <Button 
-                    onClick={() => setShowCreateEvent(true)} 
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setShowCreateEvent(true)}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     New Event
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {events.map((event) => (
-                    <div
+
+                <div className="grid gap-6">
+                  {events.map((event, index) => (
+                    <motion.div
                       key={event.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedEvent?.id === event.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => {
-                        setSelectedEvent(event)
-                        fetchSongs(event.id)
-                      }}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.02, y: -5 }}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedEvent(event)}
                     >
-                      <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                      <p className="text-sm text-gray-600">{event.description}</p>
-                      <div className="flex items-center text-xs text-gray-500 mt-2">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(new Date(event.event_date))}
-                      </div>
-                    </div>
+                      <Card className={`border-0 backdrop-blur-xl border transition-all duration-300 ${
+                        selectedEvent?.id === event.id
+                          ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 border-purple-500/50 shadow-2xl'
+                          : 'bg-black/20 border-white/10 hover:bg-white/5'
+                      }`}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-lg">
+                                <Calendar className="h-6 w-6 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-white font-semibold text-lg">{event.title}</h3>
+                                <p className="text-gray-400">{event.description}</p>
+                                <div className="flex items-center text-sm text-gray-500 mt-2">
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  {formatDate(new Date(event.event_date))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-gray-400 mb-2">Status</div>
+                              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                event.is_active 
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              }`}>
+                                {event.is_active ? 'Active' : 'Inactive'}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </motion.div>
+            )}
 
-          {/* Event Details & Songs */}
-          <div className="lg:col-span-2">
-            {selectedEvent ? (
-              <div className="space-y-6">
-                {/* Event Info */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-2xl">{selectedEvent.title}</CardTitle>
-                        <CardDescription>{selectedEvent.description}</CardDescription>
-                        <div className="flex items-center text-sm text-gray-600 mt-2">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {formatDate(new Date(selectedEvent.event_date))}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600 mb-2">Guest Link:</div>
-                        <div className="text-xs bg-gray-100 p-2 rounded font-mono">
-                          {`${window.location.origin}/event/${selectedEvent.id}`}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
+            {activeTab === 'songs' && selectedEvent && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Playlist: {selectedEvent.title}</h2>
+                    <p className="text-gray-400">{approvedSongs.length} songs • {totalVotes} total votes</p>
+                  </div>
+                  <div className="space-x-3">
+                    <Button 
+                      onClick={() => setShowAddSong(true)}
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Song
+                    </Button>
+                    <Button 
+                      onClick={resetVotes}
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      Reset Votes
+                    </Button>
+                  </div>
+                </div>
 
-                {/* Songs Management */}
-                <Card>
+                {/* Approved Songs */}
+                <Card className="border-0 bg-black/20 backdrop-blur-xl border border-white/10 shadow-2xl">
                   <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <CardTitle>Playlist Songs</CardTitle>
-                      <div className="space-x-2">
-                        <Button 
-                          onClick={() => setShowAddSong(true)}
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Song
-                        </Button>
-                        <Button 
-                          onClick={resetVotes}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Reset Votes
-                        </Button>
-                      </div>
-                    </div>
+                    <CardTitle className="text-white text-xl">Approved Songs</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {songs.filter(s => s.is_approved).map((song) => (
-                        <div key={song.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <h4 className="font-medium">{song.title}</h4>
-                            <p className="text-sm text-gray-600">{song.artist}</p>
+                    <div className="space-y-4">
+                      {approvedSongs.map((song, index) => (
+                        <motion.div
+                          key={song.id}
+                          initial={{ opacity: 0, x: -30 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                          className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors duration-200"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              index === 0 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                              index === 1 ? 'bg-gradient-to-r from-gray-500 to-gray-600' :
+                              index === 2 ? 'bg-gradient-to-r from-orange-500 to-red-500' :
+                              'bg-gradient-to-r from-purple-500 to-blue-500'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h4 className="text-white font-medium">{song.title}</h4>
+                              <p className="text-gray-400 text-sm">{song.artist}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Star className="h-4 w-4 mr-1 text-yellow-500" />
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center text-lg font-semibold text-yellow-400">
+                              <Star className="h-5 w-5 mr-2 fill-current" />
                               {song.votes}
                             </div>
                             <Button
                               onClick={() => deleteSong(song.id)}
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700"
+                              className="border-red-500/30 text-red-400 hover:bg-red-500/20"
                             >
                               Delete
                             </Button>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
-
-                    {/* Pending Songs */}
-                    {songs.filter(s => !s.is_approved).length > 0 && (
-                      <div className="mt-6">
-                        <h4 className="font-medium text-gray-900 mb-3">Pending Approval</h4>
-                        <div className="space-y-3">
-                          {songs.filter(s => !s.is_approved).map((song) => (
-                            <div key={song.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                              <div>
-                                <h4 className="font-medium">{song.title}</h4>
-                                <p className="text-sm text-gray-600">{song.artist}</p>
-                                <p className="text-xs text-gray-500">Submitted by: {song.submitted_by || 'Guest'}</p>
-                              </div>
-                              <div className="flex space-x-2">
-                                <Button
-                                  onClick={() => approveSong(song.id)}
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  Approve
-                                </Button>
-                                <Button
-                                  onClick={() => deleteSong(song.id)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  Reject
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Event Selected</h3>
-                  <p className="text-gray-600">Select an event from the list or create a new one to get started.</p>
-                </CardContent>
-              </Card>
+
+                {/* Pending Songs */}
+                {pendingSongs.length > 0 && (
+                  <Card className="border-0 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 backdrop-blur-xl border border-white/10 shadow-2xl">
+                    <CardHeader>
+                      <CardTitle className="text-white text-xl">Pending Approval</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {pendingSongs.map((song, index) => (
+                          <motion.div
+                            key={song.id}
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.4, delay: index * 0.1 }}
+                            className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10"
+                          >
+                            <div>
+                              <h4 className="text-white font-medium">{song.title}</h4>
+                              <p className="text-gray-400 text-sm">{song.artist}</p>
+                              <p className="text-gray-500 text-xs">Submitted by: {song.submitted_by || 'Guest'}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={() => approveSong(song.id)}
+                                size="sm"
+                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                onClick={() => deleteSong(song.id)}
+                                variant="outline"
+                                size="sm"
+                                className="border-red-500/30 text-red-400 hover:bg-red-500/20"
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </motion.div>
             )}
           </div>
         </div>
       </div>
 
       {/* Create Event Modal */}
-      {showCreateEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Create New Event</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={createEvent} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Event Title</label>
-                  <Input
-                    value={newEvent.title}
-                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                    placeholder="Wedding Reception"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description (Optional)</label>
-                  <Input
-                    value={newEvent.description}
-                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                    placeholder="Celebrate with us!"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Event Date & Time</label>
-                  <Input
-                    type="datetime-local"
-                    value={newEvent.event_date}
-                    onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                    Create Event
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowCreateEvent(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <AnimatePresence>
+        {showCreateEvent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <Card className="w-full max-w-md border-0 bg-black/90 backdrop-blur-xl border border-white/20 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-white text-xl">Create New Event</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={createEvent} className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-300">Event Title</label>
+                      <Input
+                        value={newEvent.title}
+                        onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                        placeholder="Wedding Reception"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-300">Description (Optional)</label>
+                      <Input
+                        value={newEvent.description}
+                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        placeholder="Celebrate with us!"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-300">Event Date & Time</label>
+                      <Input
+                        type="datetime-local"
+                        value={newEvent.event_date}
+                        onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
+                        className="bg-white/10 border-white/20 text-white"
+                        required
+                      />
+                    </div>
+                    <div className="flex space-x-2 pt-4">
+                      <Button type="submit" className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                        Create Event
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowCreateEvent(false)}
+                        className="flex-1 border-white/20 text-white hover:bg-white/10"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Song Modal */}
-      {showAddSong && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Add Song to Playlist</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={addSong} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Song Title</label>
-                  <Input
-                    value={newSong.title}
-                    onChange={(e) => setNewSong({ ...newSong, title: e.target.value })}
-                    placeholder="Bohemian Rhapsody"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Artist</label>
-                  <Input
-                    value={newSong.artist}
-                    onChange={(e) => setNewSong({ ...newSong, artist: e.target.value })}
-                    placeholder="Queen"
-                    required
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
-                    Add Song
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowAddSong(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <AnimatePresence>
+        {showAddSong && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <Card className="w-full max-w-md border-0 bg-black/90 backdrop-blur-xl border border-white/20 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-white text-xl">Add Song to Playlist</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={addSong} className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-300">Song Title</label>
+                      <Input
+                        value={newSong.title}
+                        onChange={(e) => setNewSong({ ...newSong, title: e.target.value })}
+                        placeholder="Bohemian Rhapsody"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-300">Artist</label>
+                      <Input
+                        value={newSong.artist}
+                        onChange={(e) => setNewSong({ ...newSong, artist: e.target.value })}
+                        placeholder="Queen"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                        required
+                      />
+                    </div>
+                    <div className="flex space-x-2 pt-4">
+                      <Button type="submit" className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
+                        Add Song
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowAddSong(false)}
+                        className="flex-1 border-white/20 text-white hover:bg-white/10"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
