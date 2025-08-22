@@ -13,7 +13,8 @@ import {
   Pause,
   Sparkles,
   User,
-  Camera
+  Camera,
+  AlertCircle
 } from 'lucide-react';
 import './App.css';
 
@@ -33,12 +34,19 @@ function App() {
   const [filterOccasion, setFilterOccasion] = useState('all');
   const [sortBy, setSortBy] = useState('timestamp');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     // Load current user from localStorage
-    const savedUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (savedUser) {
-      setCurrentUser(savedUser);
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('currentUser'));
+      if (savedUser) {
+        setCurrentUser(savedUser);
+      }
+    } catch (error) {
+      console.error('Error loading user from localStorage:', error);
+      localStorage.removeItem('currentUser');
     }
 
     const savedRequests = JSON.parse(localStorage.getItem('songRequests')) || [];
@@ -86,34 +94,107 @@ function App() {
     }
   }, []);
 
-  const handleProfileSubmit = (e) => {
+  // Function to compress image
+  const compressImage = (file, maxWidth = 150, maxHeight = 150, quality = 0.7) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const userName = formData.get('userName');
     const profilePicture = formData.get('profilePicture');
 
-    if (profilePicture && profilePicture.size > 0) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const userProfile = {
-          name: userName,
-          profilePicture: e.target.result,
-          joinedAt: new Date().toLocaleString()
-        };
-        setCurrentUser(userProfile);
-        localStorage.setItem('currentUser', JSON.stringify(userProfile));
-        setShowProfileModal(false);
-      };
-      reader.readAsDataURL(profilePicture);
-    } else {
+    try {
+      let compressedImage = null;
+      
+      if (profilePicture && profilePicture.size > 0) {
+        // Check file size (max 5MB)
+        if (profilePicture.size > 5 * 1024 * 1024) {
+          setErrorMessage('Profile picture must be smaller than 5MB');
+          setShowError(true);
+          setTimeout(() => setShowError(false), 3000);
+          return;
+        }
+        
+        // Compress the image
+        compressedImage = await compressImage(profilePicture);
+      }
+
       const userProfile = {
         name: userName,
-        profilePicture: null,
+        profilePicture: compressedImage,
         joinedAt: new Date().toLocaleString()
       };
-      setCurrentUser(userProfile);
-      localStorage.setItem('currentUser', JSON.stringify(userProfile));
-      setShowProfileModal(false);
+
+      // Try to save to localStorage
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(userProfile));
+        setCurrentUser(userProfile);
+        setShowProfileModal(false);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } catch (storageError) {
+        if (storageError.name === 'QuotaExceededError') {
+          // If still too large, try without profile picture
+          const userProfileWithoutPic = {
+            name: userName,
+            profilePicture: null,
+            joinedAt: new Date().toLocaleString()
+          };
+          
+          try {
+            localStorage.setItem('currentUser', JSON.stringify(userProfileWithoutPic));
+            setCurrentUser(userProfileWithoutPic);
+            setShowProfileModal(false);
+            setErrorMessage('Profile picture was too large and was removed. Profile updated without picture.');
+            setShowError(true);
+            setTimeout(() => setShowError(false), 5000);
+          } catch (finalError) {
+            setErrorMessage('Unable to save profile. Please try again.');
+            setShowError(true);
+            setTimeout(() => setShowError(false), 3000);
+          }
+        } else {
+          throw storageError;
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setErrorMessage('Error updating profile. Please try again.');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
     }
   };
 
@@ -411,7 +492,7 @@ function App() {
                         Choose Photo
                       </label>
                     </div>
-                    <small>Optional - Add a profile picture to personalize your experience</small>
+                    <small>Optional - Max 5MB. Image will be automatically compressed.</small>
                   </div>
 
                   <div className="form-actions">
@@ -421,6 +502,36 @@ function App() {
                   </div>
                 </form>
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              className="success-message"
+              initial={{ opacity: 0, scale: 0.8, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              transition={{ duration: 0.4, type: "spring" }}
+            >
+              <CheckCircle size={20} />
+              {currentUser ? 'Profile updated successfully!' : 'Song request submitted successfully!'}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showError && (
+            <motion.div
+              className="error-message"
+              initial={{ opacity: 0, scale: 0.8, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              transition={{ duration: 0.4, type: "spring" }}
+            >
+              <AlertCircle size={20} />
+              {errorMessage}
             </motion.div>
           )}
         </AnimatePresence>
@@ -495,21 +606,6 @@ function App() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showSuccess && (
-            <motion.div
-              className="success-message"
-              initial={{ opacity: 0, scale: 0.8, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -20 }}
-              transition={{ duration: 0.4, type: "spring" }}
-            >
-              <CheckCircle size={20} />
-              Song request submitted successfully!
             </motion.div>
           )}
         </AnimatePresence>
