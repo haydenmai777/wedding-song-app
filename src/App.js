@@ -12,9 +12,7 @@ import {
   Play,
   Pause,
   Sparkles,
-  User,
-  Camera,
-  AlertCircle
+  User
 } from 'lucide-react';
 import './App.css';
 
@@ -34,8 +32,6 @@ function App() {
   const [filterOccasion, setFilterOccasion] = useState('all');
   const [sortBy, setSortBy] = useState('timestamp');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     // Load current user from localStorage
@@ -94,166 +90,24 @@ function App() {
     }
   }, []);
 
-  // Function to compress image
-  const compressImage = (file, maxWidth = 150, maxHeight = 150, quality = 0.7) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        
-        img.onload = () => {
-          try {
-            // Calculate new dimensions
-            let { width, height } = img;
-            
-            if (width > height) {
-              if (width > maxWidth) {
-                height = (height * maxWidth) / width;
-                width = maxWidth;
-              }
-            } else {
-              if (height > maxHeight) {
-                width = (width * maxHeight) / height;
-                height = maxHeight;
-              }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Draw and compress
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-            
-            console.log('Image compressed:', { originalSize: file.size, compressedSize: compressedDataUrl.length });
-            resolve(compressedDataUrl);
-          } catch (drawError) {
-            console.error('Error drawing image to canvas:', drawError);
-            reject(drawError);
-          }
-        };
-        
-        img.onerror = (error) => {
-          console.error('Error loading image:', error);
-          reject(new Error('Failed to load image'));
-        };
-        
-        img.src = URL.createObjectURL(file);
-      } catch (error) {
-        console.error('Error in compressImage:', error);
-        reject(error);
-      }
-    });
-  };
-
-  // Fallback method for simple image handling
-  const handleImageSimple = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        resolve(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleProfileSubmit = async (e) => {
+  const handleProfileSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const userName = formData.get('userName');
-    const profilePicture = formData.get('profilePicture');
-
-    console.log('Profile update started:', { userName, hasPicture: !!profilePicture, fileSize: profilePicture?.size });
 
     try {
-      let compressedImage = null;
-      
-      if (profilePicture && profilePicture.size > 0) {
-        console.log('Processing profile picture...');
-        
-        // Check file size (max 5MB)
-        if (profilePicture.size > 5 * 1024 * 1024) {
-          setErrorMessage('Profile picture must be smaller than 5MB');
-          setShowError(true);
-          setTimeout(() => setShowError(false), 3000);
-          return;
-        }
-        
-        try {
-          // Compress the image
-          compressedImage = await compressImage(profilePicture);
-          console.log('Image compressed successfully, size:', compressedImage.length);
-        } catch (compressError) {
-          console.error('Image compression failed:', compressError);
-          console.log('Trying fallback method...');
-          
-          try {
-            // Try simple method as fallback
-            compressedImage = await handleImageSimple(profilePicture);
-            console.log('Fallback method successful, size:', compressedImage.length);
-          } catch (fallbackError) {
-            console.error('Fallback method also failed:', fallbackError);
-            // Continue without profile picture if both methods fail
-            compressedImage = null;
-          }
-        }
-      }
-
       const userProfile = {
         name: userName,
-        profilePicture: compressedImage,
         joinedAt: new Date().toLocaleString()
       };
 
-      console.log('Saving user profile...');
-
-      // Try to save to localStorage
-      try {
-        localStorage.setItem('currentUser', JSON.stringify(userProfile));
-        console.log('Profile saved successfully');
-        
-        setCurrentUser(userProfile);
-        setShowProfileModal(false);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-      } catch (storageError) {
-        console.error('Storage error:', storageError);
-        
-        if (storageError.name === 'QuotaExceededError') {
-          console.log('Quota exceeded, trying without profile picture...');
-          
-          // If still too large, try without profile picture
-          const userProfileWithoutPic = {
-            name: userName,
-            profilePicture: null,
-            joinedAt: new Date().toLocaleString()
-          };
-          
-          try {
-            localStorage.setItem('currentUser', JSON.stringify(userProfileWithoutPic));
-            console.log('Profile saved without picture');
-            
-            setCurrentUser(userProfileWithoutPic);
-            setShowProfileModal(false);
-            setErrorMessage('Profile picture was too large and was removed. Profile updated without picture.');
-            setShowError(true);
-            setTimeout(() => setShowError(false), 5000);
-          } catch (finalError) {
-            console.error('Final storage error:', finalError);
-            setErrorMessage('Unable to save profile. Please try again.');
-            setShowError(true);
-            setTimeout(() => setShowError(false), 3000);
-          }
-        } else {
-          throw storageError;
-        }
-      }
+      localStorage.setItem('currentUser', JSON.stringify(userProfile));
+      setCurrentUser(userProfile);
+      setShowProfileModal(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
-      setErrorMessage('Error updating profile. Please try again.');
-      setShowError(true);
-      setTimeout(() => setShowError(false), 3000);
     }
   };
 
@@ -412,17 +266,9 @@ function App() {
           {currentUser ? (
             <div className="user-profile">
               <div className="profile-info">
-                {currentUser.profilePicture ? (
-                  <img 
-                    src={currentUser.profilePicture} 
-                    alt={currentUser.name} 
-                    className="profile-picture"
-                  />
-                ) : (
-                  <div className="profile-picture-placeholder">
-                    <User size={24} />
-                  </div>
-                )}
+                <div className="profile-picture-placeholder">
+                  <User size={24} />
+                </div>
                 <div className="profile-details">
                   <h3>Welcome, {currentUser.name}! 🎉</h3>
                   <p>Joined: {currentUser.joinedAt}</p>
@@ -439,7 +285,7 @@ function App() {
           ) : (
             <div className="join-prompt">
               <h3>Join the Celebration! 🎊</h3>
-              <p>Add your name and profile picture to get started</p>
+              <p>Add your name to get started</p>
               <button 
                 onClick={() => setShowProfileModal(true)}
                 className="join-btn"
@@ -535,24 +381,6 @@ function App() {
                       defaultValue={currentUser?.name || ''}
                     />
                   </div>
-                  
-                  <div className="form-group">
-                    <label>Profile Picture</label>
-                    <div className="file-input-wrapper">
-                      <input
-                        type="file"
-                        name="profilePicture"
-                        accept="image/*"
-                        className="file-input"
-                        id="profile-picture"
-                      />
-                      <label htmlFor="profile-picture" className="file-input-label">
-                        <Camera size={16} />
-                        Choose Photo
-                      </label>
-                    </div>
-                    <small>Optional - Max 5MB. Image will be automatically compressed.</small>
-                  </div>
 
                   <div className="form-actions">
                     <button type="submit" className="submit-btn">
@@ -576,21 +404,6 @@ function App() {
             >
               <CheckCircle size={20} />
               {currentUser ? 'Profile updated successfully!' : 'Song request submitted successfully!'}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showError && (
-            <motion.div
-              className="error-message"
-              initial={{ opacity: 0, scale: 0.8, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -20 }}
-              transition={{ duration: 0.4, type: "spring" }}
-            >
-              <AlertCircle size={20} />
-              {errorMessage}
             </motion.div>
           )}
         </AnimatePresence>

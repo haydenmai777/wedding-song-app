@@ -164,15 +164,6 @@ body::before {
   gap: 20px;
 }
 
-.profile-picture {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #F1C40F;
-  box-shadow: 0 8px 25px rgba(241, 196, 15, 0.3);
-}
-
 .profile-picture-placeholder {
   width: 80px;
   height: 80px;
@@ -348,45 +339,6 @@ body::before {
   border-color: #F1C40F;
   box-shadow: 0 0 0 4px rgba(241, 196, 15, 0.15);
   transform: translateY(-2px);
-}
-
-.file-input-wrapper {
-  position: relative;
-}
-
-.file-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.file-input-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, #F1C40F 0%, #F39C12 100%);
-  color: #C0392B;
-  padding: 14px 24px;
-  border-radius: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.file-input-label:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(241, 196, 15, 0.4);
-  background: linear-gradient(135deg, #C0392B 0%, #E74C3C 100%);
-  color: white;
-}
-
-.profile-form small {
-  display: block;
-  margin-top: 8px;
-  color: rgba(75, 46, 46, 0.7);
-  font-size: 0.9rem;
 }
 
 /* Controls section */
@@ -603,33 +555,6 @@ body::before {
 
 .success-message::before {
   content: '🎉';
-  position: absolute;
-  left: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.5rem;
-  animation: bounce 2s infinite;
-}
-
-/* Error message */
-.error-message {
-  background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
-  color: white;
-  padding: 18px 28px;
-  border-radius: 16px;
-  margin-bottom: 25px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: center;
-  font-weight: 500;
-  box-shadow: 0 10px 30px rgba(231, 76, 60, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.error-message::before {
-  content: '⚠️';
   position: absolute;
   left: -20px;
   top: 50%;
