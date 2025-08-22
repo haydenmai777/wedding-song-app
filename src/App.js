@@ -96,37 +96,65 @@ function App() {
 
   // Function to compress image
   const compressImage = (file, maxWidth = 150, maxHeight = 150, quality = 0.7) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          try {
+            // Calculate new dimensions
+            let { width, height } = img;
+            
+            if (width > height) {
+              if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = (width * maxHeight) / height;
+                height = maxHeight;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            
+            console.log('Image compressed:', { originalSize: file.size, compressedSize: compressedDataUrl.length });
+            resolve(compressedDataUrl);
+          } catch (drawError) {
+            console.error('Error drawing image to canvas:', drawError);
+            reject(drawError);
+          }
+        };
+        
+        img.onerror = (error) => {
+          console.error('Error loading image:', error);
+          reject(new Error('Failed to load image'));
+        };
+        
+        img.src = URL.createObjectURL(file);
+      } catch (error) {
+        console.error('Error in compressImage:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // Fallback method for simple image handling
+  const handleImageSimple = (file) => {
     return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        // Calculate new dimensions
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw and compress
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target.result);
       };
-      
-      img.src = URL.createObjectURL(file);
+      reader.readAsDataURL(file);
     });
   };
 
@@ -136,10 +164,14 @@ function App() {
     const userName = formData.get('userName');
     const profilePicture = formData.get('profilePicture');
 
+    console.log('Profile update started:', { userName, hasPicture: !!profilePicture, fileSize: profilePicture?.size });
+
     try {
       let compressedImage = null;
       
       if (profilePicture && profilePicture.size > 0) {
+        console.log('Processing profile picture...');
+        
         // Check file size (max 5MB)
         if (profilePicture.size > 5 * 1024 * 1024) {
           setErrorMessage('Profile picture must be smaller than 5MB');
@@ -148,8 +180,24 @@ function App() {
           return;
         }
         
-        // Compress the image
-        compressedImage = await compressImage(profilePicture);
+        try {
+          // Compress the image
+          compressedImage = await compressImage(profilePicture);
+          console.log('Image compressed successfully, size:', compressedImage.length);
+        } catch (compressError) {
+          console.error('Image compression failed:', compressError);
+          console.log('Trying fallback method...');
+          
+          try {
+            // Try simple method as fallback
+            compressedImage = await handleImageSimple(profilePicture);
+            console.log('Fallback method successful, size:', compressedImage.length);
+          } catch (fallbackError) {
+            console.error('Fallback method also failed:', fallbackError);
+            // Continue without profile picture if both methods fail
+            compressedImage = null;
+          }
+        }
       }
 
       const userProfile = {
@@ -158,15 +206,23 @@ function App() {
         joinedAt: new Date().toLocaleString()
       };
 
+      console.log('Saving user profile...');
+
       // Try to save to localStorage
       try {
         localStorage.setItem('currentUser', JSON.stringify(userProfile));
+        console.log('Profile saved successfully');
+        
         setCurrentUser(userProfile);
         setShowProfileModal(false);
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
       } catch (storageError) {
+        console.error('Storage error:', storageError);
+        
         if (storageError.name === 'QuotaExceededError') {
+          console.log('Quota exceeded, trying without profile picture...');
+          
           // If still too large, try without profile picture
           const userProfileWithoutPic = {
             name: userName,
@@ -176,12 +232,15 @@ function App() {
           
           try {
             localStorage.setItem('currentUser', JSON.stringify(userProfileWithoutPic));
+            console.log('Profile saved without picture');
+            
             setCurrentUser(userProfileWithoutPic);
             setShowProfileModal(false);
             setErrorMessage('Profile picture was too large and was removed. Profile updated without picture.');
             setShowError(true);
             setTimeout(() => setShowError(false), 5000);
           } catch (finalError) {
+            console.error('Final storage error:', finalError);
             setErrorMessage('Unable to save profile. Please try again.');
             setShowError(true);
             setTimeout(() => setShowError(false), 3000);
